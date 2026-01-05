@@ -1,31 +1,35 @@
 import React, {useRef} from "react";
-import {Button, StyleSheet, Text, TouchableOpacity, View} from "react-native";
+import {StyleSheet, TouchableOpacity, View} from "react-native";
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
-    useDerivedValue,
-    useAnimatedProps,
-    withTiming,
-    Easing,
     cancelAnimation,
-    useAnimatedReaction
+    useAnimatedReaction, useAnimatedProps
 } from "react-native-reanimated";
 import {useSetAtom} from 'jotai';
 import {rotationAtom} from "../../store/atoms.ts";
 import {runOnJS} from "react-native-worklets";
 import Icon from "react-native-vector-icons/Ionicons";
 import {useTimerManager} from "../../hooks/useTimerManager.ts";
+import Svg, {Line, Text as SvgText, Path} from 'react-native-svg';
+import {createArcPath} from "../../utils/timerHelper.ts";
 
 
 export const TimerWheel: React.FC = () => {
     // variables
+    const TICK_COUNT = 12;  // 0, 5, 10, ..., 55
+    const TICK_LENGTH = 10;
+
     const wheelRef = useRef<View>(null);
     const savedRotation = useSharedValue(0);
     const previousAngle = useSharedValue(0);
     const centerX = useSharedValue(0);
     const centerY = useSharedValue(0);
     const lastUpdateTime = useSharedValue<number>(0);
+
+    const AnimatedPath = Animated.createAnimatedComponent(Path);
+
 
     // managers
     const {rotation, isTimerRunning, pauseTimer, resumeTimer} = useTimerManager()
@@ -34,22 +38,26 @@ export const TimerWheel: React.FC = () => {
     const setRotation = useSetAtom(rotationAtom);
 
     // functions
+    const animatedArcProps = useAnimatedProps(() => {
+        const degrees = (rotation.value / Math.PI) * 180;
+        const adjustedDegrees = Math.max(0, degrees - 1); // 1 saniye (6derece) çıkar
+        const path = createArcPath(100, 100, 90, 0, adjustedDegrees);
+        return {d: path};
+    });
+
     const updateRotation = (degrees: number) => {
         setRotation(degrees);
     };
 
     const handlePlayPauseIcon = () => {
-        console.log("is", isTimerRunning)
         if (isTimerRunning.value)
             pauseTimer();
         else
             resumeTimer()
     }
 
-
     const panGesture = Gesture.Pan()
         .onStart((e) => {
-            // Timer çalışıyorsa durdur
             if (isTimerRunning.value) {
                 cancelAnimation(rotation);
                 isTimerRunning.value = false;
@@ -64,24 +72,20 @@ export const TimerWheel: React.FC = () => {
             const dy = e.absoluteY - centerY.value;
             const currentAngle = Math.atan2(dy, dx);
 
-            // Önceki açıdan şu anki açıya kadar olan farkı hesapla
             let angleDiff = currentAngle - previousAngle.value;
 
-            // -π ile +π arasındaki zıplamayı düzelt
             if (angleDiff > Math.PI) {
                 angleDiff -= 2 * Math.PI;
             } else if (angleDiff < -Math.PI) {
                 angleDiff += 2 * Math.PI;
             }
 
-            // Rotasyonu güncelle ve 0-2π arasına sınırla
-            let newRotation = rotation.value + angleDiff;
+            let newRotation = rotation.value - angleDiff;
             newRotation = Math.max(0, Math.min(newRotation, Math.PI * 2));
 
             rotation.value = newRotation;
             previousAngle.value = currentAngle;
 
-            // Store güncelleme (50ms throttle)
             const now = Date.now();
             if (now - lastUpdateTime.value >= 50) {
                 lastUpdateTime.value = now;
@@ -98,7 +102,7 @@ export const TimerWheel: React.FC = () => {
         });
 
     const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{rotateZ: `${((rotation.value / Math.PI) * 180)}deg`}],
+        transform: [{rotateZ: `${((-rotation.value / Math.PI) * 180)}deg`}],
     }));
 
 
@@ -112,8 +116,76 @@ export const TimerWheel: React.FC = () => {
         }
     );
 
+    const renderLines = () => {
+        const WHEEL_SIZE = 200;
+        const CENTER = WHEEL_SIZE / 2;
+        const RADIUS = 90;
+
+        return Array.from({length: TICK_COUNT}, (_, i) => {
+            const minute = i * 5;
+            const angle = (minute / 60) * 360 - 90;
+            const angleRad = angle * Math.PI / 180;
+
+            const x1 = CENTER + RADIUS * Math.cos(angleRad);
+            const y1 = CENTER + RADIUS * Math.sin(angleRad);
+
+            const x2 = CENTER + (RADIUS - TICK_LENGTH) * Math.cos(angleRad);
+            const y2 = CENTER + (RADIUS - TICK_LENGTH) * Math.sin(angleRad);
+
+            return (
+                <Line
+                    key={minute}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="black"
+                    strokeWidth={2}
+                />
+            );
+        });
+    };
+
+    const renderNumbers = () => {
+        const WHEEL_SIZE = 200;
+        const CENTER = WHEEL_SIZE / 2;
+        const TEXT_RADIUS = 70;
+
+        return Array.from({length: TICK_COUNT}, (_, i) => {
+            const minute = i * 5;
+            const angle = (minute / 60) * 360 - 90;
+            const angleRad = angle * Math.PI / 180;
+
+            const x = CENTER + TEXT_RADIUS * Math.cos(angleRad);
+            const y = CENTER + TEXT_RADIUS * Math.sin(angleRad);
+
+            return (
+                <SvgText
+                    key={`text-${minute}`}
+                    x={x}
+                    y={y}
+                    fontSize="14"
+                    fill="black"
+                    textAnchor="middle"
+                    alignmentBaseline="middle"
+                >
+                    {minute}
+                </SvgText>
+            );
+        });
+    };
+
     return (<View style={[styles.container]}>
         <View style={styles.wheelContainer}>
+            <Svg width={200} height={200} style={styles.svgContainer}>
+                <AnimatedPath animatedProps={animatedArcProps}
+                              fill='rgba(255, 0, 0, 0.4)'
+                />
+
+                {renderNumbers()}
+                {renderLines()}
+            </Svg>
+
             <GestureDetector gesture={panGesture}>
                 <Animated.View
                     ref={wheelRef}
@@ -142,15 +214,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         padding: 20,
     },
-
-    innerCircle: {
-        height: 120,
-        width: 20,
-        backgroundColor: 'black',
-        borderRadius: 10,
-        borderTopWidth: 10,
-        borderTopColor: "red",
+    svgContainer: {
+        position: 'absolute',
     },
+
     wheelContainer: {
         width: 200,
         height: 200,
@@ -161,6 +228,9 @@ const styles = StyleSheet.create({
         position: 'absolute',
         justifyContent: 'center',
         alignItems: 'center',
+        padding: 6,
+        backgroundColor: '#c3c3c3',
+        borderRadius: "50%",
     },
     animatedContainer: {
         width: 200,
@@ -170,8 +240,7 @@ const styles = StyleSheet.create({
         borderWidth: 5,
         borderColor: "#3d3d4e",
         borderStyle: "dashed",
-        borderRadius: "50%",
+        borderRadius: 100,
     },
-    image: {}
-    ,
-})
+    image: {},
+});
