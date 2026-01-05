@@ -21,3 +21,16 @@ export const createArcPath = (centerX: number, centerY: number, radius: number, 
     ].join(" ");
 };
 
+export const createEdgePath = (
+    centerX: number,
+    centerY: number,
+    radius: number,
+    angle: number
+) => {
+    "worklet";
+    const point = polarToCartesian(centerX, centerY, radius, angle);
+    return [
+        "M", centerX, centerY,
+        "L", point.x, point.y
+    ].join(" ");
+};

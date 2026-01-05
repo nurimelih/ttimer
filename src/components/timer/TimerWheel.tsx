@@ -1,5 +1,5 @@
 import React, {useRef} from "react";
-import {Pressable, StyleSheet, TouchableOpacity, View} from "react-native";
+import {Pressable, StyleSheet, View} from "react-native";
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Animated, {
     useAnimatedStyle,
@@ -13,7 +13,7 @@ import {runOnJS} from "react-native-worklets";
 import Icon from "react-native-vector-icons/Ionicons";
 import {useTimerManager} from "../../hooks/useTimerManager.ts";
 import Svg, {Line, Text as SvgText, Path} from 'react-native-svg';
-import {createArcPath} from "../../utils/timerHelper.ts";
+import {createArcPath, createEdgePath} from "../../utils/timerHelper.ts";
 
 
 export const TimerWheel: React.FC = () => {
@@ -35,7 +35,7 @@ export const TimerWheel: React.FC = () => {
     const {rotation, isTimerRunning, pauseTimer, resumeTimer} = useTimerManager()
 
     // jotai states
-    const setRotation = useSetAtom(rotationAtom);
+    const  setRotation = useSetAtom(rotationAtom);
 
     // functions
     const animatedSvgStyle = useAnimatedStyle(() => ({
@@ -48,6 +48,19 @@ export const TimerWheel: React.FC = () => {
         const adjustedDegrees = Math.max(0, degrees - 1);
         const path = createArcPath(100, 100, 90, 0, adjustedDegrees);
         return {d: path};
+    });
+
+    const animatedStartEdgeProps = useAnimatedProps(() => {
+        return {
+            d: createEdgePath(100, 100, 60, 0),
+        };
+    });
+
+    const animatedEndEdgeProps = useAnimatedProps(() => {
+        const degrees = (rotation.value / Math.PI) * 180;
+        return {
+            d: createEdgePath(100, 100, 60, degrees),
+        };
     });
 
     const updateRotation = (degrees: number) => {
@@ -150,7 +163,7 @@ export const TimerWheel: React.FC = () => {
                     x2={x2}
                     y2={y2}
                     stroke="black"
-                    strokeWidth={2}
+                    strokeWidth={3}
                 />
             );
         });
@@ -194,7 +207,22 @@ export const TimerWheel: React.FC = () => {
                 height={200}
                 style={[styles.svgContainer, animatedSvgStyle]}
             >
-                <AnimatedPath animatedProps={animatedArcProps} fill='rgba(222, 0, 0, 0.8)'/>
+                <AnimatedPath animatedProps={animatedArcProps} fill="#d23b38"/>
+                <AnimatedPath
+                    animatedProps={animatedStartEdgeProps}
+                    stroke="white"
+                    strokeWidth={2}
+                    fill="none"
+                    strokeLinecap="round"
+                />
+
+                <AnimatedPath
+                    animatedProps={animatedEndEdgeProps}
+                    stroke="white"
+                    strokeWidth={2}
+                    fill="none"
+                    strokeLinecap="round"
+                />
                 {renderNumbers()}
                 {renderLines()}
             </AnimatedSvg>
