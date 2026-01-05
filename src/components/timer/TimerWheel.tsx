@@ -1,5 +1,5 @@
 import React, {useRef} from "react";
-import {StyleSheet, TouchableOpacity, View} from "react-native";
+import {Pressable, StyleSheet, TouchableOpacity, View} from "react-native";
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Animated, {
     useAnimatedStyle,
@@ -29,7 +29,7 @@ export const TimerWheel: React.FC = () => {
     const lastUpdateTime = useSharedValue<number>(0);
 
     const AnimatedPath = Animated.createAnimatedComponent(Path);
-
+    const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
     // managers
     const {rotation, isTimerRunning, pauseTimer, resumeTimer} = useTimerManager()
@@ -38,9 +38,14 @@ export const TimerWheel: React.FC = () => {
     const setRotation = useSetAtom(rotationAtom);
 
     // functions
+    const animatedSvgStyle = useAnimatedStyle(() => ({
+        transform: [{rotateZ: `-${((rotation.value / Math.PI) * 180)}deg`}],
+    }));
+
+
     const animatedArcProps = useAnimatedProps(() => {
         const degrees = (rotation.value / Math.PI) * 180;
-        const adjustedDegrees = Math.max(0, degrees - 1); // 1 saniye (6derece) çıkar
+        const adjustedDegrees = Math.max(0, degrees - 1);
         const path = createArcPath(100, 100, 90, 0, adjustedDegrees);
         return {d: path};
     });
@@ -81,7 +86,9 @@ export const TimerWheel: React.FC = () => {
             }
 
             let newRotation = rotation.value - angleDiff;
-            newRotation = Math.max(0, Math.min(newRotation, Math.PI * 2));
+            const MAX_SECONDS = 59.9;
+            const MAX_ROTATION = (MAX_SECONDS / 60) * Math.PI * 2;
+            newRotation = Math.max(0, Math.min(newRotation, MAX_ROTATION));
 
             rotation.value = newRotation;
             previousAngle.value = currentAngle;
@@ -95,7 +102,10 @@ export const TimerWheel: React.FC = () => {
         })
         .onEnd(() => {
             savedRotation.value = rotation.value;
-            const degrees = Math.round((rotation.value / Math.PI) * 180);
+            const degrees = Math.min(
+                359,
+                Math.round((rotation.value / Math.PI) * 180)
+            );
             runOnJS(updateRotation)(degrees);
             runOnJS(resumeTimer)();
 
@@ -175,16 +185,20 @@ export const TimerWheel: React.FC = () => {
         });
     };
 
+
     return (<View style={[styles.container]}>
         <View style={styles.wheelContainer}>
-            <Svg width={200} height={200} style={styles.svgContainer}>
-                <AnimatedPath animatedProps={animatedArcProps}
-                              fill='rgba(255, 0, 0, 0.4)'
-                />
 
+            <AnimatedSvg
+                width={200}
+                height={200}
+                style={[styles.svgContainer, animatedSvgStyle]}
+            >
+                <AnimatedPath animatedProps={animatedArcProps} fill='rgba(222, 0, 0, 0.8)'/>
                 {renderNumbers()}
                 {renderLines()}
-            </Svg>
+            </AnimatedSvg>
+
 
             <GestureDetector gesture={panGesture}>
                 <Animated.View
@@ -201,9 +215,11 @@ export const TimerWheel: React.FC = () => {
 
             </GestureDetector>
 
-            <TouchableOpacity style={[styles.playIcon]} onPress={handlePlayPauseIcon}>
-                <Icon name="caret-forward-circle-outline" size={30} color="black"/>
-            </TouchableOpacity>
+            <Pressable style={[styles.playIcon]} onPress={handlePlayPauseIcon}>
+
+                <Icon name={isTimerRunning ? "pause-outline" : "caret-forward-circle-outline"} size={30}
+                      color="black"/>
+            </Pressable>
         </View>
     </View>)
 }
@@ -239,7 +255,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         borderWidth: 5,
         borderColor: "#3d3d4e",
-        borderStyle: "dashed",
+
         borderRadius: 100,
     },
     image: {},

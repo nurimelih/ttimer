@@ -9,7 +9,7 @@ type TimerTextProps = {
     subTitle?: string
 }
 
-export const TimerText: React.FC<TimerTextProps> = ({durationType = "MIN", subTitle = "SETUP TIME"}) => {
+export const TimerText: React.FC<TimerTextProps> = ({durationType = "SEC", subTitle = "SETUP TIME"}) => {
     // jotai states
     const rotation = useAtomValue(rotationAtom);
 
