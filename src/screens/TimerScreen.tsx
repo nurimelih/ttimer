@@ -1,4 +1,4 @@
-import {Dimensions, FlatList, Pressable, StyleSheet, View} from 'react-native';
+import {Dimensions, FlatList, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {TimerWheel} from '../components/timer/TimerWheel';
 import {TimerText} from '../components/timer/TimerText';
 import {useAtom} from 'jotai';
@@ -13,8 +13,9 @@ const clockWidth = (Dimensions.get('window').width - paddingSize * 3) / 2;
 
 export const TimerScreen = () => {
     const [timerIds, setTimerIds] = useAtom(timerIdsAtom);
-    const addTimer = useCallback(() => {
+    const isAllowedMore = timerIds?.length < 4;
 
+    const addTimer = useCallback(() => {
         const newId = `timer-${Date.now()}`;
         setTimerIds(prev => {
             if (prev?.length < 4)
@@ -44,9 +45,11 @@ export const TimerScreen = () => {
                 contentContainerStyle={styles.listContent}
                 columnWrapperStyle={styles.columnWrapper}
             />
-            <Pressable style={styles.addButton} onPress={addTimer}>
+            <TouchableOpacity disabled={!isAllowedMore}
+                              style={[styles.addButton, !isAllowedMore && styles.disabled]}
+                              onPress={addTimer}>
                 <Icon name="add" size={32} color="white"/>
-            </Pressable>
+            </TouchableOpacity>
 
         </SafeAreaView>
     );
@@ -113,4 +116,9 @@ const styles = StyleSheet.create({
         shadowRadius: 4.65,
         elevation: 8,
     },
+    disabled: {
+        backgroundColor: 'gray',
+
+
+    }
 });
