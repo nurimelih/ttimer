@@ -72,11 +72,11 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     });
 
     // jotai states
-    const timerState = useAtomValue(timerAtomFamily(id));
     const setRotation = useSetAtom(timerAtomFamily(id));
 
     // managers
-    const {rotation, isTimerRunning, pauseTimer, resumeTimer, startCountUp} = useTimerManager(timerState.mode)
+    const {rotation, isTimerRunning, pauseTimer, resumeTimer, startCountUp} = useTimerManager()
+
 
     // functions
     const animatedSvgStyle = useAnimatedStyle(() => ({

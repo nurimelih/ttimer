@@ -1,15 +1,12 @@
 import {cancelAnimation, Easing, useSharedValue, withTiming, runOnUI} from "react-native-reanimated";
 import {TIMER_CONSTANTS} from "../constants/timer"
 
-export const useTimerManager = (mode: 'SEC' | 'MIN' = 'SEC') => {
-    const {MAX_DURATION, MAX_DURATION_HOUR} = TIMER_CONSTANTS;
+
+export const useTimerManager = () => {
+    const {MAX_DURATION_HOUR} = TIMER_CONSTANTS;
 
     const rotation = useSharedValue(0);
     const isTimerRunning = useSharedValue(false);
-
-    const getMaxDuration = () => {
-        return mode === 'MIN' ? MAX_DURATION_HOUR : MAX_DURATION;
-    };
 
     const startTimer = () => {
         runOnUI(() => {
@@ -17,8 +14,7 @@ export const useTimerManager = (mode: 'SEC' | 'MIN' = 'SEC') => {
             isTimerRunning.value = true;
 
             const rotationRatio = rotation.value / (Math.PI * 2);
-            const maxDuration = mode === 'MIN' ? MAX_DURATION_HOUR : MAX_DURATION;
-            const durationMs = rotationRatio * maxDuration;
+            const durationMs = rotationRatio * MAX_DURATION_HOUR;
 
             rotation.value = withTiming(0, {
                 duration: durationMs,
@@ -45,8 +41,7 @@ export const useTimerManager = (mode: 'SEC' | 'MIN' = 'SEC') => {
             isTimerRunning.value = true;
 
             const rotationRatio = rotation.value / (Math.PI * 2);
-            const maxDuration = mode === 'MIN' ? MAX_DURATION_HOUR : MAX_DURATION;
-            const remainingMs = rotationRatio * maxDuration;
+            const remainingMs = rotationRatio * MAX_DURATION_HOUR;
 
             rotation.value = withTiming(0, {
                 duration: remainingMs,
@@ -75,7 +70,7 @@ export const useTimerManager = (mode: 'SEC' | 'MIN' = 'SEC') => {
 
             // 0'dan max rotation'a kadar git (ileri sayım)
             const maxRotation = (59.9 / 60) * Math.PI * 2;
-            const maxDuration = mode === 'MIN' ? MAX_DURATION_HOUR : MAX_DURATION;
+            const maxDuration = MAX_DURATION_HOUR;
 
             rotation.value = withTiming(maxRotation, {
                 duration: maxDuration,
