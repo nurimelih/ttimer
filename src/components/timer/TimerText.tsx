@@ -1,30 +1,37 @@
 import React from "react";
-import {StyleSheet, Text, View} from "react-native";
-import {useAtomValue} from "jotai";
+import {Pressable, StyleSheet, Text, View} from "react-native";
+import {useAtom, useAtomValue} from "jotai";
 import {atomFamily} from "jotai-family";
-import {rotationAtom, timerAtomFamily} from "../../store/atoms.ts";
+import {timerAtomFamily} from "../../store/atoms.ts";
 
 
 type TimerTextProps = {
     id: string;
-    durationType?: "MIN" | "SEC" | "HOUR",
     subTitle?: string
 }
 
-export const TimerText: React.FC<TimerTextProps> = ({id, durationType = "SEC", subTitle = "SETUP TIME"}) => {
+export const TimerText: React.FC<TimerTextProps> = ({id}) => {
     // jotai states
-    const rotation = useAtomValue(timerAtomFamily(id));
+    const [timer, setTimer] = useAtom(timerAtomFamily(id));
 
-
+    // functions
+    const handleOnTypePress = () => {
+        setTimer(prev => ({
+            ...prev,
+            mode: prev.mode === 'SEC' ? 'MIN' : 'SEC'
+        }));
+    }
 
 
     return <View style={[styles.container]}>
         <Text
-            style={[styles.countText]}> {"00"} : {rotation.timeValue < 60 ? `0${Math.floor(rotation.timeValue / 6)}` : Math.floor(rotation.timeValue / 6)}
-            <Text style={[styles.subTitleText]}>{Math.max(0, rotation.timeValue % 10)}</Text>
+            style={[styles.countText]}> {"00"} : {timer.timeValue < 60 ? `0${Math.floor(timer.timeValue / 6)}` : Math.floor(timer.timeValue / 6)}
+            <Text style={[styles.subTitleText]}>{Math.max(0, timer.timeValue % 10)}</Text>
         </Text>
 
-        <Text style={[styles.durationTypeText]}>{durationType}</Text>
+        <Pressable onPress={handleOnTypePress}>
+            <Text style={[styles.durationTypeText]}>{timer.mode}</Text>
+        </Pressable>
 
     </View>
 }

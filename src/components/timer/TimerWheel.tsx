@@ -28,7 +28,6 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     const TICK_LENGTH = WHEEL_SIZE * 0.045; // 10/220 = 0.045
     const TICK_LENGTH_SECOND = WHEEL_SIZE * 0.023; // 5/220 = 0.023
 
-
     const wheelRef = useRef<View>(null);
     const [isRunningUI, setIsRunningUI] = React.useState(false);
     const savedRotation = useSharedValue(0);
@@ -41,8 +40,6 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
     // themes
-
-
     const styles = StyleSheet.create({
         container: {
             alignItems: "center",
@@ -116,7 +113,7 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     });
 
     const updateRotation = (degrees: number) => {
-        setRotation({timeValue: degrees, isRunning: isRunningUI});
+        setRotation((curr) => ({timeValue: degrees, isRunning: isRunningUI, mode: curr.mode}));
     };
 
     const handlePlayPauseIcon = () => {

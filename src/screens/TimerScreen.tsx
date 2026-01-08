@@ -118,7 +118,5 @@ const styles = StyleSheet.create({
     },
     disabled: {
         backgroundColor: 'gray',
-
-
     }
 });
