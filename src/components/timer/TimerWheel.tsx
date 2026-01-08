@@ -19,12 +19,12 @@ import {createArcPath, createEdgePath} from "../../utils/timerHelper.ts";
 export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     // variables
     const paddingSize = 20;
-    const clockWidth = (Dimensions.get('window').width - paddingSize * 3) / 2;
+    const clockSize = (Dimensions.get('window').width - paddingSize * 3) / 2;
 
     const TICK_COUNT_MIN = 12;  // 0, 5, 10, ..., 55
 
     const TICK_COUNT_SECOND = 60;  // 0, 5, 10, ..., 55
-    const WHEEL_SIZE = clockWidth
+    const WHEEL_SIZE = clockSize
     const TICK_LENGTH = WHEEL_SIZE * 0.045; // 10/220 = 0.045
     const TICK_LENGTH_SECOND = WHEEL_SIZE * 0.023; // 5/220 = 0.023
 
@@ -52,7 +52,7 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
         },
 
         wheelContainer: {
-            width: clockWidth,
+            width: clockSize,
             justifyContent: 'center',
             alignItems: 'center',
         },
@@ -65,8 +65,8 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
             borderRadius: 21,
         },
         animatedContainer: {
-            width: clockWidth,
-            height: clockWidth,
+            width: clockSize,
+            height: clockSize,
         },
         image: {},
     });
@@ -286,8 +286,8 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
         <View style={styles.wheelContainer}>
 
             <AnimatedSvg
-                width={clockWidth}
-                height={clockWidth}
+                width={clockSize}
+                height={clockSize}
                 style={[styles.svgContainer, animatedSvgStyle]}
             >
                 <AnimatedPath
