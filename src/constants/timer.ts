@@ -1,6 +1,7 @@
 export const TIMER_CONSTANTS = {
     // MIN_DURATION: 60 * 1000, // 1 min in ms
     MAX_DURATION: 60 * 1000, // 1 min in ms
+    MAX_DURATION_HOUR: 60 * 1000 - 60,
     MAX_ACTIVE_TIMERS: 4,
     WHEEL_SIZE: 280,
     WHEEL_STROKE_WIDTH: 20,

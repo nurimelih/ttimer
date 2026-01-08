@@ -7,7 +7,7 @@ import Animated, {
     cancelAnimation,
     useAnimatedReaction, useAnimatedProps
 } from "react-native-reanimated";
-import {useSetAtom} from 'jotai';
+import {useAtomValue, useSetAtom} from 'jotai';
 import {timerAtomFamily} from "../../store/atoms.ts";
 import {runOnJS} from "react-native-worklets";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -71,11 +71,12 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
         image: {},
     });
 
-    // managers
-    const {rotation, isTimerRunning, pauseTimer, resumeTimer} = useTimerManager()
-
     // jotai states
+    const timerState = useAtomValue(timerAtomFamily(id));
     const setRotation = useSetAtom(timerAtomFamily(id));
+
+    // managers
+    const {rotation, isTimerRunning, pauseTimer, resumeTimer, startCountUp} = useTimerManager(timerState.mode)
 
     // functions
     const animatedSvgStyle = useAnimatedStyle(() => ({
@@ -112,6 +113,12 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     };
 
     const handlePlayPauseIcon = () => {
+        if (!isTimerRunning.value && rotation.value === 0) {
+            // Timer 0'daysa ve çalışmıyorsa, ileri sayım başlat
+            startCountUp();
+            return;
+        }
+
         if (isTimerRunning.value)
             pauseTimer();
         else
