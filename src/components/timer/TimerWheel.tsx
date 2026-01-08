@@ -8,7 +8,7 @@ import Animated, {
     useAnimatedReaction, useAnimatedProps
 } from "react-native-reanimated";
 import {useSetAtom} from 'jotai';
-import {rotationAtom, timerAtomFamily} from "../../store/atoms.ts";
+import {timerAtomFamily} from "../../store/atoms.ts";
 import {runOnJS} from "react-native-worklets";
 import Icon from "react-native-vector-icons/Ionicons";
 import {useTimerManager} from "../../hooks/useTimerManager.ts";
@@ -22,7 +22,7 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     const clockWidth = (Dimensions.get('window').width - paddingSize * 3) / 2;
 
     const TICK_COUNT_MIN = 12;  // 0, 5, 10, ..., 55
-    // const TICK_COUNT_MINUTE_LINE = 12;  // 0, 5, 10, ..., 55
+
     const TICK_COUNT_SECOND = 60;  // 0, 5, 10, ..., 55
     const WHEEL_SIZE = clockWidth
     const TICK_LENGTH = WHEEL_SIZE * 0.045; // 10/220 = 0.045
@@ -61,17 +61,12 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
             justifyContent: 'center',
             alignItems: 'center',
             padding: 6,
-            backgroundColor: '#c3c3c3',
+            backgroundColor: 'white',
             borderRadius: 21,
         },
         animatedContainer: {
             width: clockWidth,
             height: clockWidth,
-            justifyContent: "center",
-            alignItems: "center",
-            borderWidth: 0,
-            borderColor: "#3d3d4e",
-            borderRadius: 100,
         },
         image: {},
     });
@@ -89,13 +84,13 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
 
 
     const CENTER = WHEEL_SIZE / 2;
-    const RADIUS = WHEEL_SIZE * 0.41; // 90/220 = 0.41
+    const RADIUS = WHEEL_SIZE * 0.40; // 90/220 = 0.41
     const ARC_THICKNESS = WHEEL_SIZE * 0.27; // 60/220 = 0.27
 
     const animatedArcProps = useAnimatedProps(() => {
         const degrees = (rotation.value / Math.PI) * 180;
         const adjustedDegrees = Math.max(0, degrees - 1);
-        const path = createArcPath(CENTER, CENTER, RADIUS, 0, adjustedDegrees);
+        const path = createArcPath(CENTER, CENTER, RADIUS - 10, 0, adjustedDegrees);
         return {d: path};
     });
 
@@ -222,7 +217,6 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
             );
         });
     };
-
     const renderSeconds = () => {
         return Array.from({length: TICK_COUNT_SECOND}, (_, i) => {
             const minute = i;
@@ -248,7 +242,6 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
             );
         });
     };
-
     const renderNumbers = () => {
         const TEXT_RADIUS = WHEEL_SIZE * 0.45; // 100/220 = 0.45
         const FONT_SIZE = WHEEL_SIZE * 0.082; // 18/220 = 0.082
@@ -281,7 +274,6 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
             );
         });
     };
-
 
     return (<View style={[styles.container]}>
         <View style={styles.wheelContainer}>
