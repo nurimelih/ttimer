@@ -1,5 +1,5 @@
 import React, {useRef} from "react";
-import {Pressable, StyleSheet, View} from "react-native";
+import {Dimensions, Pressable, StyleSheet, View} from "react-native";
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Animated, {
     useAnimatedStyle,
@@ -8,7 +8,7 @@ import Animated, {
     useAnimatedReaction, useAnimatedProps
 } from "react-native-reanimated";
 import {useSetAtom} from 'jotai';
-import {rotationAtom} from "../../store/atoms.ts";
+import {rotationAtom, timerAtomFamily} from "../../store/atoms.ts";
 import {runOnJS} from "react-native-worklets";
 import Icon from "react-native-vector-icons/Ionicons";
 import {useTimerManager} from "../../hooks/useTimerManager.ts";
@@ -16,12 +16,21 @@ import Svg, {Line, Text as SvgText, Path} from 'react-native-svg';
 import {createArcPath, createEdgePath} from "../../utils/timerHelper.ts";
 
 
-export const TimerWheel: React.FC = () => {
+export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     // variables
-    const TICK_COUNT = 12;  // 0, 5, 10, ..., 55
-    const TICK_LENGTH = 10;
+    const paddingSize = 20;
+    const clockWidth = (Dimensions.get('window').width - paddingSize * 3) / 2;
+
+    const TICK_COUNT_MIN = 12;  // 0, 5, 10, ..., 55
+    // const TICK_COUNT_MINUTE_LINE = 12;  // 0, 5, 10, ..., 55
+    const TICK_COUNT_SECOND = 60;  // 0, 5, 10, ..., 55
+    const WHEEL_SIZE = clockWidth
+    const TICK_LENGTH = WHEEL_SIZE * 0.045; // 10/220 = 0.045
+    const TICK_LENGTH_SECOND = WHEEL_SIZE * 0.023; // 5/220 = 0.023
+
 
     const wheelRef = useRef<View>(null);
+    const [isRunningUI, setIsRunningUI] = React.useState(false);
     const savedRotation = useSharedValue(0);
     const previousAngle = useSharedValue(0);
     const centerX = useSharedValue(0);
@@ -31,11 +40,50 @@ export const TimerWheel: React.FC = () => {
     const AnimatedPath = Animated.createAnimatedComponent(Path);
     const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
+    // themes
+
+
+    const styles = StyleSheet.create({
+        container: {
+            alignItems: "center",
+            borderWidth: 0,
+            borderColor: "red",
+            padding: 0,
+        },
+        svgContainer: {
+            position: 'absolute',
+        },
+
+        wheelContainer: {
+            width: clockWidth,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        playIcon: {
+            position: 'absolute',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 6,
+            backgroundColor: '#c3c3c3',
+            borderRadius: 21,
+        },
+        animatedContainer: {
+            width: clockWidth,
+            height: clockWidth,
+            justifyContent: "center",
+            alignItems: "center",
+            borderWidth: 0,
+            borderColor: "#3d3d4e",
+            borderRadius: 100,
+        },
+        image: {},
+    });
+
     // managers
     const {rotation, isTimerRunning, pauseTimer, resumeTimer} = useTimerManager()
 
     // jotai states
-    const  setRotation = useSetAtom(rotationAtom);
+    const setRotation = useSetAtom(timerAtomFamily(id));
 
     // functions
     const animatedSvgStyle = useAnimatedStyle(() => ({
@@ -43,28 +91,32 @@ export const TimerWheel: React.FC = () => {
     }));
 
 
+    const CENTER = WHEEL_SIZE / 2;
+    const RADIUS = WHEEL_SIZE * 0.41; // 90/220 = 0.41
+    const ARC_THICKNESS = WHEEL_SIZE * 0.27; // 60/220 = 0.27
+
     const animatedArcProps = useAnimatedProps(() => {
         const degrees = (rotation.value / Math.PI) * 180;
         const adjustedDegrees = Math.max(0, degrees - 1);
-        const path = createArcPath(100, 100, 90, 0, adjustedDegrees);
+        const path = createArcPath(CENTER, CENTER, RADIUS, 0, adjustedDegrees);
         return {d: path};
     });
 
     const animatedStartEdgeProps = useAnimatedProps(() => {
         return {
-            d: createEdgePath(100, 100, 60, 0),
+            d: createEdgePath(CENTER, CENTER, ARC_THICKNESS, 0),
         };
     });
 
     const animatedEndEdgeProps = useAnimatedProps(() => {
         const degrees = (rotation.value / Math.PI) * 180;
         return {
-            d: createEdgePath(100, 100, 60, degrees),
+            d: createEdgePath(CENTER, CENTER, ARC_THICKNESS, degrees),
         };
     });
 
     const updateRotation = (degrees: number) => {
-        setRotation(degrees);
+        setRotation({timeValue: degrees, isRunning: isRunningUI});
     };
 
     const handlePlayPauseIcon = () => {
@@ -139,13 +191,18 @@ export const TimerWheel: React.FC = () => {
         }
     );
 
-    const renderLines = () => {
-        const WHEEL_SIZE = 200;
-        const CENTER = WHEEL_SIZE / 2;
-        const RADIUS = 90;
+    useAnimatedReaction(
+        () => isTimerRunning.value,
+        (current, previous) => {
+            if (current !== previous) {
+                runOnJS(setIsRunningUI)(current);
+            }
+        }
+    );
 
-        return Array.from({length: TICK_COUNT}, (_, i) => {
-            const minute = i * 5;
+    const renderMinutes = () => {
+        return Array.from({length: TICK_COUNT_MIN}, (_, i) => {
+            const minute = i * 15;
             const angle = (minute / 60) * 360 - 90;
             const angleRad = angle * Math.PI / 180;
 
@@ -163,18 +220,43 @@ export const TimerWheel: React.FC = () => {
                     x2={x2}
                     y2={y2}
                     stroke="black"
-                    strokeWidth={3}
+                    strokeWidth={2}
+                />
+            );
+        });
+    };
+
+    const renderSeconds = () => {
+        return Array.from({length: TICK_COUNT_SECOND}, (_, i) => {
+            const minute = i;
+            const angle = (minute / 60) * 360 - 90;
+            const angleRad = angle * Math.PI / 180;
+
+            const x1 = CENTER + RADIUS * Math.cos(angleRad);
+            const y1 = CENTER + RADIUS * Math.sin(angleRad);
+
+            const x2 = CENTER + (RADIUS - TICK_LENGTH_SECOND) * Math.cos(angleRad);
+            const y2 = CENTER + (RADIUS - TICK_LENGTH_SECOND) * Math.sin(angleRad);
+
+            return (
+                <Line
+                    key={minute}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="black"
+                    strokeWidth={1}
                 />
             );
         });
     };
 
     const renderNumbers = () => {
-        const WHEEL_SIZE = 200;
-        const CENTER = WHEEL_SIZE / 2;
-        const TEXT_RADIUS = 70;
+        const TEXT_RADIUS = WHEEL_SIZE * 0.45; // 100/220 = 0.45
+        const FONT_SIZE = WHEEL_SIZE * 0.082; // 18/220 = 0.082
 
-        return Array.from({length: TICK_COUNT}, (_, i) => {
+        return Array.from({length: TICK_COUNT_MIN}, (_, i) => {
             const minute = i * 5;
             const angle = (minute / 60) * 360 - 90;
             const angleRad = angle * Math.PI / 180;
@@ -182,12 +264,17 @@ export const TimerWheel: React.FC = () => {
             const x = CENTER + TEXT_RADIUS * Math.cos(angleRad);
             const y = CENTER + TEXT_RADIUS * Math.sin(angleRad);
 
+            // Her rakam çizgiye dik olsun diye açıyı hesapla
+            const textRotation = angle + 90;
+
+
             return (
                 <SvgText
                     key={`text-${minute}`}
                     x={x}
                     y={y}
-                    fontSize="14"
+                    fontSize={FONT_SIZE}
+                    transform={`rotate(${textRotation} ${x} ${y})`}
                     fill="black"
                     textAnchor="middle"
                     alignmentBaseline="middle"
@@ -203,11 +290,10 @@ export const TimerWheel: React.FC = () => {
         <View style={styles.wheelContainer}>
 
             <AnimatedSvg
-                width={200}
-                height={200}
+                width={clockWidth}
+                height={clockWidth}
                 style={[styles.svgContainer, animatedSvgStyle]}
             >
-                <AnimatedPath animatedProps={animatedArcProps} fill="#d23b38"/>
                 <AnimatedPath
                     animatedProps={animatedStartEdgeProps}
                     stroke="white"
@@ -215,6 +301,7 @@ export const TimerWheel: React.FC = () => {
                     fill="none"
                     strokeLinecap="round"
                 />
+                <AnimatedPath animatedProps={animatedArcProps} fill="#d23b38"/>
 
                 <AnimatedPath
                     animatedProps={animatedEndEdgeProps}
@@ -224,7 +311,8 @@ export const TimerWheel: React.FC = () => {
                     strokeLinecap="round"
                 />
                 {renderNumbers()}
-                {renderLines()}
+                {renderMinutes()}
+                {renderSeconds()}
             </AnimatedSvg>
 
 
@@ -245,46 +333,12 @@ export const TimerWheel: React.FC = () => {
 
             <Pressable style={[styles.playIcon]} onPress={handlePlayPauseIcon}>
 
-                <Icon name={isTimerRunning ? "pause-outline" : "caret-forward-circle-outline"} size={30}
-                      color="black"/>
+                <Icon
+                    name={isRunningUI ? "pause-outline" : "caret-forward-circle-outline"}
+                    size={30}
+                    color="black"
+                />
             </Pressable>
         </View>
     </View>)
 }
-
-
-const styles = StyleSheet.create({
-    container: {
-        alignItems: "center",
-        padding: 20,
-    },
-    svgContainer: {
-        position: 'absolute',
-    },
-
-    wheelContainer: {
-        width: 200,
-        height: 200,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    playIcon: {
-        position: 'absolute',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 6,
-        backgroundColor: '#c3c3c3',
-        borderRadius: "50%",
-    },
-    animatedContainer: {
-        width: 200,
-        height: 200,
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: 5,
-        borderColor: "#3d3d4e",
-
-        borderRadius: 100,
-    },
-    image: {},
-});
