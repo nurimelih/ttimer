@@ -75,7 +75,15 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     const setRotation = useSetAtom(timerAtomFamily(id));
 
     // managers
-    const {rotation, isTimerRunning, pauseTimer, resumeTimer, startCountUp} = useTimerManager()
+    const {
+        rotation,
+        isTimerRunning,
+        direction,
+        pauseTimer,
+        resumeCountDownTimer,
+        resumeCountUpTimer,
+        startCountUp
+    } = useTimerManager()
 
 
     // functions
@@ -109,7 +117,11 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
     });
 
     const updateRotation = (degrees: number) => {
-        setRotation((curr) => ({timeValue: degrees, isRunning: isRunningUI, mode: curr.mode}));
+        setRotation((curr) => ({
+            ...curr,
+            timeValue: degrees,
+            isRunning: isRunningUI,
+        }));
     };
 
     const handlePlayPauseIcon = () => {
@@ -121,8 +133,10 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
 
         if (isTimerRunning.value)
             pauseTimer();
+        else if (direction.value === "BACKWARD")
+            resumeCountDownTimer()
         else
-            resumeTimer()
+            resumeCountUpTimer()
     }
 
     const panGesture = Gesture.Pan()
@@ -171,7 +185,7 @@ export const TimerWheel: React.FC<{ id: string }> = ({id}) => {
                 Math.round((rotation.value / Math.PI) * 180)
             );
             runOnJS(updateRotation)(degrees);
-            runOnJS(resumeTimer)();
+            runOnJS(resumeCountDownTimer)();
 
         });
 

@@ -7,6 +7,7 @@ export const useTimerManager = () => {
 
     const rotation = useSharedValue(0);
     const isTimerRunning = useSharedValue(false);
+    const direction = useSharedValue("BACKWARD");
 
     const startTimer = () => {
         runOnUI(() => {
@@ -15,6 +16,7 @@ export const useTimerManager = () => {
 
             const rotationRatio = rotation.value / (Math.PI * 2);
             const durationMs = rotationRatio * MAX_DURATION_HOUR;
+            direction.value = "FORWARD"
 
             rotation.value = withTiming(0, {
                 duration: durationMs,
@@ -35,13 +37,14 @@ export const useTimerManager = () => {
         })();
     };
 
-    const resumeTimer = () => {
+    const resumeCountDownTimer = () => {
         runOnUI(() => {
             'worklet';
             isTimerRunning.value = true;
 
             const rotationRatio = rotation.value / (Math.PI * 2);
             const remainingMs = rotationRatio * MAX_DURATION_HOUR;
+            direction.value = "FORWARD"
 
             rotation.value = withTiming(0, {
                 duration: remainingMs,
@@ -53,6 +56,31 @@ export const useTimerManager = () => {
             });
         })();
     };
+
+    const resumeCountUpTimer = () => {
+        runOnUI(() => {
+            'worklet';
+            isTimerRunning.value = true;
+
+
+
+
+            // 0'dan max rotation'a kadar git (ileri sayım)
+            const maxRotation = (59.9 / 60) * Math.PI * 2;
+            const maxDuration = MAX_DURATION_HOUR;
+
+
+            rotation.value = withTiming(maxRotation, {
+                duration: maxDuration,
+                easing: Easing.linear,
+            }, (finished) => {
+                if (finished) {
+                    isTimerRunning.value = false;
+                }
+            });
+        })();
+    };
+
 
     const resetTimer = () => {
         runOnUI(() => {
@@ -71,6 +99,7 @@ export const useTimerManager = () => {
             // 0'dan max rotation'a kadar git (ileri sayım)
             const maxRotation = (59.9 / 60) * Math.PI * 2;
             const maxDuration = MAX_DURATION_HOUR;
+            direction.value = "FORWARD";
 
             rotation.value = withTiming(maxRotation, {
                 duration: maxDuration,
@@ -87,9 +116,11 @@ export const useTimerManager = () => {
     return {
         rotation,
         isTimerRunning,
+        direction,
         startTimer,
         pauseTimer,
-        resumeTimer,
+        resumeCountDownTimer,
+        resumeCountUpTimer,
         resetTimer,
         startCountUp,
     };
